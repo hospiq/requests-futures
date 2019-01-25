@@ -19,7 +19,7 @@ releases of python.
     print(response.content)
 
 """
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from logging import getLogger
 from pickle import dumps, PickleError
@@ -95,12 +95,16 @@ class FuturesSession(Session):
                         'removed in 1.0, use `hooks` instead')
             func = partial(wrap, self, func, background_callback)
 
-        if isinstance(self.executor, ProcessPoolExecutor):
-            # verify function can be pickled
-            try:
-                dumps(func)
-            except (TypeError, PickleError):
-                raise RuntimeError(PICKLE_ERROR)
+        try:
+            from concurrent.futures import ProcessPoolExecutor
+            if isinstance(self.executor, ProcessPoolExecutor):
+                # verify function can be pickled
+                try:
+                    dumps(func)
+                except (TypeError, PickleError):
+                    raise RuntimeError(PICKLE_ERROR)
+        except ImportError:
+            pass
 
         return self.executor.submit(func, *args, **kwargs)
 
